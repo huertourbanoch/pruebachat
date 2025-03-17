@@ -92,7 +92,6 @@ function cleanupEverything() {
         }
     }
     
-    // Limpiar listeners de mensajes de chat individuales
     Object.keys(chatMessageListeners).forEach(chatId => {
         database.ref(`messages/${chatId}`).off('child_added', chatMessageListeners[chatId]);
     });
@@ -326,7 +325,6 @@ function loadUsersForNewChat() {
 function setupChatListListener() {
     console.log("Configurando listener para lista de chats");
     
-    // Eliminar listeners anteriores
     if (userChatsListener) {
         if (currentChatsRef) {
             console.log(`Desconectando listener de lista de chats para usuario: ${currentUserId}`);
@@ -338,7 +336,6 @@ function setupChatListListener() {
         userChatsListener = null;
     }
     
-    // Eliminar todos los listeners de mensajes anteriores
     Object.keys(chatMessageListeners).forEach(chatId => {
         database.ref(`messages/${chatId}`).off('child_added', chatMessageListeners[chatId]);
         delete chatMessageListeners[chatId];
@@ -372,7 +369,6 @@ function setupChatListListener() {
                     if (chatData) {
                         chatsData.set(chatId, chatData);
                         
-                        // Configurar listener para nuevos mensajes en este chat
                         setupChatMessageListener(chatId);
                     }
                 } catch (error) {
@@ -470,11 +466,9 @@ function setupMessagesListener(chatId) {
             
             renderMessages(messagesArray);
             
-            // Si este es el chat actual, marcarlo como leído
             if (currentChatId === chatId) {
                 markChatAsRead(chatId);
             } 
-            // Si no es el chat actual, actualizar contador de no leídos
             else {
                 const unreadCount = calculateUnreadMessages(chatId, messagesArray);
                 unreadCounts[chatId] = unreadCount;
@@ -494,38 +488,47 @@ function setupMessagesListener(chatId) {
 }
 
 function setupChatMessageListener(chatId) {
-    // Si ya existe un listener para este chat, eliminarlo primero
     if (chatMessageListeners[chatId]) {
+        console.log(`Eliminando listener anterior para mensajes de ${chatId}`);
         database.ref(`messages/${chatId}`).off('child_added', chatMessageListeners[chatId]);
         delete chatMessageListeners[chatId];
     }
     
-    console.log(`Configurando listener para mensajes en tiempo real para el chat: ${chatId}`);
+    console.log(`Configurando listener en tiempo real para chat ${chatId}`);
     
-    // Listener para mensajes nuevos (usando child_added para detectar solo nuevos mensajes)
+    let lastKnownTimestamp = Date.now();
+    
     chatMessageListeners[chatId] = function(snapshot) {
-        // Solo procesar si no es el chat actual
-        if (chatId !== currentChatId) {
-            const message = snapshot.val();
+        const message = snapshot.val();
+        
+        if (!message || !message.timestamp) {
+            console.log('Mensaje ignorado: datos incompletos', message);
+            return;
+        }
+        
+        console.log(`Mensaje recibido en chat ${chatId}:`, 
+            message.senderId === currentUserId ? 'Tu mensaje' : 'Mensaje de otro usuario',
+            'timestamp:', message.timestamp);
+        
+        if (chatId !== currentChatId && message.senderId !== currentUserId) {
+            const lastReadTime = lastReadMessages[chatId] || 0;
             
-            // Si el mensaje no es del usuario actual y es más reciente que la última lectura
-            if (message && 
-                message.senderId !== currentUserId && 
-                message.timestamp > (lastReadMessages[chatId] || 0)) {
+            if (message.timestamp > lastReadTime) {
+                console.log(`Mensaje no leído detectado en chat ${chatId}`);
                 
-                console.log(`Nuevo mensaje no leído en chat ${chatId}`);
-                
-                // Incrementar contador
                 unreadCounts[chatId] = (unreadCounts[chatId] || 0) + 1;
                 
-                // Actualizar badge
                 updateUnreadBadge(chatId, unreadCounts[chatId]);
+                
+                saveReadStatus();
             }
         }
     };
     
-    // Registrar el listener
-    database.ref(`messages/${chatId}`).on('child_added', chatMessageListeners[chatId]);
+    database.ref(`messages/${chatId}`)
+        .orderByChild('timestamp')
+        .startAt(lastKnownTimestamp)
+        .on('child_added', chatMessageListeners[chatId]);
 }
 
 function createMessageElement(message, messageId) {
@@ -628,18 +631,16 @@ function markChatAsRead(chatId) {
     
     console.log(`Marcando chat ${chatId} como leído`);
     
-    // Actualizar timestamp del último mensaje leído
     const timestamp = Date.now();
     lastReadMessages[chatId] = timestamp;
     
-    // Restablecer el contador de mensajes no leídos para este chat
     unreadCounts[chatId] = 0;
     
-    // Actualizar el contador en la interfaz
     updateUnreadBadge(chatId, 0);
     
-    // Guardar el estado de lectura en localStorage para persistencia
     saveReadStatus();
+    
+    console.log(`Chat ${chatId} marcado como leído en timestamp ${timestamp}`);
 }
 
 /**
@@ -651,9 +652,6 @@ function saveReadStatus() {
     localStorage.setItem(`readStatus_${currentUserId}`, JSON.stringify(lastReadMessages));
 }
 
-/**
- * Carga el estado de lectura desde localStorage
- */
 function loadReadStatus() {
     if (!currentUserId) return;
     
@@ -674,7 +672,6 @@ function calculateUnreadMessages(chatId, messages) {
     
     const lastReadTime = lastReadMessages[chatId] || 0;
     
-    // Contar mensajes que no son del usuario actual y son más recientes que el último leído
     return messages.filter(msg => {
         return msg.message.senderId !== currentUserId && 
                msg.message.timestamp > lastReadTime;
@@ -687,16 +684,19 @@ function calculateUnreadMessages(chatId, messages) {
  * @param {number} count - Número de mensajes no leídos
  */
 function updateUnreadBadge(chatId, count) {
-    const chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
-    if (!chatItem) return;
+    console.log(`Actualizando badge para chat ${chatId}: ${count} mensajes no leídos`);
     
-    // Eliminar badge existente si hay uno
+    const chatItem = document.querySelector(`.chat-item[data-chat-id="${chatId}"]`);
+    if (!chatItem) {
+        console.log(`No se encontró elemento visual para chat ${chatId}`);
+        return;
+    }
+    
     const existingBadge = chatItem.querySelector('.unread-badge');
     if (existingBadge) {
         existingBadge.remove();
     }
     
-    // Si hay mensajes no leídos, agregar el badge
     if (count > 0) {
         const nameElement = chatItem.querySelector('.chat-name-container');
         if (nameElement) {
@@ -704,6 +704,9 @@ function updateUnreadBadge(chatId, count) {
             badge.className = 'unread-badge';
             badge.textContent = count > 99 ? '99+' : count;
             nameElement.appendChild(badge);
+            console.log(`Badge creado: ${count} mensajes`);
+        } else {
+            console.log('No se encontró contenedor para el badge');
         }
     }
 }
@@ -716,7 +719,6 @@ function renderChatList(chatsData) {
     const sortedChats = Array.from(chatsData.entries())
         .sort((a, b) => (b[1].createdAt || 0) - (a[1].createdAt || 0));
     
-    // Consultar mensajes para cada chat para calcular no leídos
     const chatPromises = sortedChats.map(async ([chatId, chatData]) => {
         try {
             const messagesSnapshot = await database.ref(`messages/${chatId}`).once('value');
@@ -726,7 +728,6 @@ function renderChatList(chatsData) {
                 .sort((a, b) => messages[a].timestamp - messages[b].timestamp)
                 .map(msgId => ({ id: msgId, message: messages[msgId] }));
             
-            // Calcular mensajes no leídos
             const unreadCount = calculateUnreadMessages(chatId, messagesArray);
             unreadCounts[chatId] = unreadCount;
             
@@ -792,8 +793,7 @@ function renderChatList(chatsData) {
                 }
                 
                 selectChat(chatId, chatData.name);
-                
-                // Marcar como leído al seleccionar el chat
+
                 markChatAsRead(chatId);
             });
             
@@ -834,7 +834,6 @@ function selectChat(chatId, chatName) {
     debugLog(`Llamando a setupMessagesListener desde selectChat`);
     setupMessagesListener(chatId);
     
-    // Marcar como leído cuando se selecciona un chat
     markChatAsRead(chatId);
     
     debugLog(`FIN selectChat: ${chatName} (${chatId})`);
