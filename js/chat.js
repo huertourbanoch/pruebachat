@@ -49,8 +49,7 @@ function debugLog(message) {
  */
 function initChat(userId, displayName) {
     console.log(`Inicializando chat para: ${displayName} (${userId})`);
-    
-    // Hacer un reset completo primero
+
     cleanupEverything();
     
     currentUserId = userId;
@@ -60,18 +59,13 @@ function initChat(userId, displayName) {
     setupChatListListener();
 }
 
-/**
- * Limpia todos los listeners de Firebase y reinicia el estado de la aplicación
- */
 function cleanupEverything() {
     console.log("Limpiando estado anterior del chat");
     
-    // Limpiar todos los listeners de Firebase
     if (database && database.ref) {
         database.ref().off();
     }
     
-    // Resetear referencias y listeners
     if (userChatsListener) {
         if (currentChatsRef) {
             currentChatsRef.off('value', userChatsListener);
@@ -92,7 +86,6 @@ function cleanupEverything() {
         }
     }
     
-    // Resetear variables
     messagesListener = null;
     userChatsListener = null;
     currentMessagesRef = null;
@@ -104,7 +97,6 @@ function cleanupEverything() {
     renderPending = false;
     pendingMessages = [];
     
-    // Limpiar UI
     chatList.innerHTML = '';
     messagesContainer.innerHTML = '';
     currentChatName.textContent = '';
@@ -128,11 +120,7 @@ function toggleModal(modal, show) {
     }
 }
 
-/**
- * Configura todos los listeners de eventos de la UI
- */
 function setupUIListeners() {
-    // Eliminar listeners existentes primero para evitar duplicados
     newChatBtn.removeEventListener('click', () => toggleModal(newChatModal, true));
     closeModal.removeEventListener('click', () => toggleModal(newChatModal, false));
     chatInfoModalClose.removeEventListener('click', () => toggleModal(chatInfoModal, false));
@@ -140,7 +128,6 @@ function setupUIListeners() {
     messageForm.removeEventListener('submit', handleMessageSubmit);
     addUserForm.removeEventListener('submit', handleAddUserSubmit);
     
-    // Configurar nuevos listeners
     newChatBtn.addEventListener('click', () => {
         toggleModal(newChatModal, true);
         loadUsersForNewChat();
@@ -153,7 +140,6 @@ function setupUIListeners() {
     messageForm.addEventListener('submit', handleMessageSubmit);
     addUserForm.addEventListener('submit', handleAddUserSubmit);
 
-    // Listener para cerrar modales al hacer clic fuera de ellos
     window.addEventListener('click', (e) => {
         if (e.target === newChatModal) {
             toggleModal(newChatModal, false);
@@ -164,9 +150,6 @@ function setupUIListeners() {
     });
 }
 
-/**
- * Maneja el envío del formulario para crear un nuevo chat
- */
 function handleNewChatSubmit(e) {
     e.preventDefault();
     
@@ -194,9 +177,6 @@ function handleNewChatSubmit(e) {
         });
 }
 
-/**
- * Maneja el envío del formulario para añadir usuarios a un chat existente
- */
 function handleAddUserSubmit(e) {
     e.preventDefault();
     
@@ -212,9 +192,6 @@ function handleAddUserSubmit(e) {
     addUsersToChat(chatId, selectedUsers);
 }
 
-/**
- * Maneja el envío de un nuevo mensaje
- */
 function handleMessageSubmit(e) {
     e.preventDefault();
     
@@ -228,7 +205,6 @@ function handleMessageSubmit(e) {
     const messageText = messageInput.value.trim();
     messageInput.value = '';
     
-    // Prevenir doble-envío
     const submitButton = messageForm.querySelector('button');
     submitButton.disabled = true;
     
@@ -257,9 +233,6 @@ function handleMessageSubmit(e) {
     debugLog(`FIN handleMessageSubmit`);
 }
 
-/**
- * Crea un nuevo chat con los usuarios seleccionados
- */
 async function createNewChat(chatName, selectedUsers) {
     console.log(`Creando nuevo chat: ${chatName} con ${selectedUsers.length} usuarios`);
     
@@ -292,9 +265,6 @@ async function createNewChat(chatName, selectedUsers) {
     }
 }
 
-/**
- * Carga los usuarios disponibles para un nuevo chat
- */
 function loadUsersForNewChat() {
     const userSelectionDiv = document.getElementById('user-selection') || document.createElement('div');
     userSelectionDiv.id = 'user-selection';
@@ -341,9 +311,6 @@ function loadUsersForNewChat() {
         });
 }
 
-/**
- * Configura el listener para la lista de chats del usuario
- */
 function setupChatListListener() {
     console.log("Configurando listener para lista de chats");
     
@@ -400,9 +367,7 @@ function setupChatListListener() {
     });
 }
 
-/**
- * Configura el listener para los mensajes de un chat específico
- */
+
 function setupMessagesListener(chatId) {
     console.log(`Configurando listener para mensajes del chat: ${chatId}`);
     
@@ -413,7 +378,6 @@ function setupMessagesListener(chatId) {
         return;
     }
     
-    // Eliminar listener anterior si existe
     if (messagesListener) {
         console.log(`Eliminando listener anterior del chat: ${previousListeningChatId}`);
         
@@ -446,7 +410,6 @@ function setupMessagesListener(chatId) {
         currentMessagesRef = null;
     }
     
-    // Resetear el conjunto de mensajes renderizados si cambiamos de chat
     if (currentListeningChatId !== chatId) {
         lastRenderedMessages = new Set();
     }
@@ -454,8 +417,7 @@ function setupMessagesListener(chatId) {
     currentListeningChatId = chatId;
     
     currentMessagesRef = database.ref(`messages/${chatId}`);
-    
-    // Control de frecuencia de actualización
+
     let lastUpdateTime = 0;
     let processingUpdate = false;
     
@@ -499,9 +461,6 @@ function setupMessagesListener(chatId) {
     console.log(`Nuevo listener configurado exitosamente para chat: ${chatId}`);
 }
 
-/**
- * Crea un elemento DOM para un mensaje
- */
 function createMessageElement(message, messageId) {
     if (messageId) {
         lastRenderedMessages.add(messageId);
@@ -534,9 +493,6 @@ function createMessageElement(message, messageId) {
     return messageEl;
 }
 
-/**
- * Renderiza un array de mensajes en el contenedor
- */
 function renderMessages(messages) {
     if (renderPending) {
         pendingMessages = [...pendingMessages, ...messages];
@@ -576,9 +532,6 @@ function renderMessages(messages) {
     });
 }
 
-/**
- * Asegura que el scroll del contenedor de mensajes esté al final
- */
 function ensureScrollToBottom() {
     if (!messagesContainer || !messagesContainer.lastElementChild) return;
 
@@ -599,9 +552,6 @@ function ensureScrollToBottom() {
     }, 50);
 }
 
-/**
- * Renderiza la lista de chats del usuario
- */
 function renderChatList(chatsData) {
     console.log(`Renderizando ${chatsData.size} chats`);
     
@@ -659,9 +609,6 @@ function renderChatList(chatsData) {
     });
 }
 
-/**
- * Selecciona un chat para mostrar sus mensajes
- */
 function selectChat(chatId, chatName) {
     debugLog(`INICIO selectChat: ${chatName} (${chatId})`);
     
@@ -697,9 +644,6 @@ function selectChat(chatId, chatName) {
     debugLog(`FIN selectChat: ${chatName} (${chatId})`);
 }
 
-/**
- * Muestra información detallada de un chat
- */
 async function showChatInfo(chatId, chatData) {
     console.log(`Mostrando información del chat: ${chatData.name} (${chatId})`);
     
@@ -729,9 +673,6 @@ async function showChatInfo(chatId, chatData) {
     toggleModal(chatInfoModal, true);
 }
 
-/**
- * Carga los participantes de un chat
- */
 async function loadChatParticipants(chatId) {
     const participantsList = document.getElementById('participants-list');
     participantsList.innerHTML = '<li>Cargando participantes...</li>';
@@ -773,9 +714,6 @@ async function loadChatParticipants(chatId) {
     }
 }
 
-/**
- * Carga usuarios disponibles para añadir a un chat
- */
 async function loadAvailableUsersForChat(chatId) {
     const userSelectionDiv = document.getElementById('add-user-selection');
     userSelectionDiv.innerHTML = '<p>Cargando usuarios disponibles...</p>';
@@ -816,9 +754,6 @@ async function loadAvailableUsersForChat(chatId) {
     }
 }
 
-/**
- * Añade usuarios a un chat existente
- */
 async function addUsersToChat(chatId, userIds) {
     console.log(`Añadiendo ${userIds.length} usuarios al chat ${chatId}`);
     
@@ -842,9 +777,6 @@ async function addUsersToChat(chatId, userIds) {
     }
 }
 
-/**
- * Confirma la eliminación de un chat
- */
 function confirmDeleteChat(chatId, chatName) {
     console.log(`Confirmando eliminación del chat: ${chatName} (${chatId})`);
     
@@ -855,9 +787,6 @@ function confirmDeleteChat(chatId, chatName) {
     }
 }
 
-/**
- * Elimina un chat y todas sus referencias
- */
 async function deleteChat(chatId) {
     console.log(`Eliminando chat: ${chatId}`);
     
@@ -897,10 +826,8 @@ async function deleteChat(chatId) {
     }
 }
 
-// Evento para limpiar todo antes de cerrar la página
 window.addEventListener('beforeunload', function() {
     cleanupEverything();
 });
 
-// Exponer la función de inicialización al ámbito global
 window.initChat = initChat;
