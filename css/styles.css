@@ -1133,16 +1133,7 @@ body {
     }
 }
 
-@media (max-width: 768px) {
-    body.keyboard-open {
-        height: 100% !important;
-        overflow: hidden !important;
-    }
-
-    .keyboard-open .messages-container {
-        height: calc(100vh - 110px) !important;
-    }
-    
+@media (max-width: 768px) { 
     .message-form {
         position: fixed !important;
         bottom: 0 !important;
@@ -1233,4 +1224,8 @@ body {
         font-size: 10px !important;
         margin-top: 3px !important;
     }
+}
+
+.keyboard-open .messages-container {
+    height: calc(100vh - 110px) !important;
 }
