@@ -283,27 +283,3 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 });
-
-// Agregar esta función a tu archivo responsive.js
-function setupKeyboardHandling() {
-    const messageInput = document.getElementById('message-input');
-    if (!messageInput) return;
-
-    messageInput.addEventListener('focus', function() {
-        document.body.classList.add('keyboard-open');
-        setTimeout(() => {
-            window.scrollTo(0, 0);
-            document.body.scrollTop = 0;
-        }, 100);
-    });
-
-    messageInput.addEventListener('blur', function() {
-        document.body.classList.remove('keyboard-open');
-    });
-}
-
-// Llamar a esta función dentro de tu DOMContentLoaded:
-document.addEventListener('DOMContentLoaded', function() {
-    // Otras funciones existentes...
-    setupKeyboardHandling();
-});
