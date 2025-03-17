@@ -75,8 +75,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 messageForm.style.width = '100%';
                 messageForm.style.left = '0';
                 messageForm.style.zIndex = '5';
-                messageForm.style.backgroundColor = '#fff';
-                messageForm.style.boxShadow = '0 -2px 10px rgba(0, 0, 0, 0.05)';
+                messageForm.style.backgroundColor = '#2a2a2a';
+                messageForm.style.boxShadow = '0 -2px 10px rgba(0, 0, 0, 0.4)';
             }
         } else {
             if (chatArea) {
@@ -249,15 +249,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const chatList = document.querySelector('.chat-list');
     if (chatList) {
         chatList.addEventListener('click', function(event) {
-            // Buscar si el clic fue en un chat-item o en algún elemento dentro de él
             const chatItem = event.target.closest('.chat-item');
-            
-            // Si encontramos un chat-item y no fue un clic en un botón de acción
+        
             if (chatItem && 
                 !event.target.closest('.delete-chat-btn') && 
                 !event.target.closest('.info-chat-btn')) {
                 
-                // Cerrar el sidebar si está abierto
                 if (sidebar.classList.contains('active')) {
                     closeSidebar();
                 }
@@ -285,4 +282,28 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+});
+
+// Agregar esta función a tu archivo responsive.js
+function setupKeyboardHandling() {
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) return;
+
+    messageInput.addEventListener('focus', function() {
+        document.body.classList.add('keyboard-open');
+        setTimeout(() => {
+            window.scrollTo(0, 0);
+            document.body.scrollTop = 0;
+        }, 100);
+    });
+
+    messageInput.addEventListener('blur', function() {
+        document.body.classList.remove('keyboard-open');
+    });
+}
+
+// Llamar a esta función dentro de tu DOMContentLoaded:
+document.addEventListener('DOMContentLoaded', function() {
+    // Otras funciones existentes...
+    setupKeyboardHandling();
 });

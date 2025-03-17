@@ -30,13 +30,11 @@ const chatInfoModal = document.getElementById('chat-info-modal');
 const chatInfoModalClose = document.querySelector('#chat-info-modal .close');
 const addUserForm = document.getElementById('add-user-form');
 
-// Función de depuración con stack trace
 function debugLog(message) {
   if (!debugMode) return;
   
   console.log(`[DEBUG] ${message}`);
   
-  // Capturar y mostrar la pila de llamadas
   try {
     throw new Error("Stack trace");
   } catch (e) {
