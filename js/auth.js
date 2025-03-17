@@ -37,7 +37,7 @@ loginForm.addEventListener('submit', (e) => {
     auth.signInWithEmailAndPassword(email, password)
         .catch((error) => {
             console.error('Error de inicio de sesión:', error);
-            loginError.textContent = 'Error al iniciar sesión: ' + error.message;
+            loginError.textContent = "Error al iniciar sesión";
         });
 });
 
