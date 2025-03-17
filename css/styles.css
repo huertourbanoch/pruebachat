@@ -320,6 +320,7 @@ body {
     border-radius: 8px;
     margin: 5px 8px;
     border: none;
+    
     background-color: var(--medium-bg);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
     transition: all 0.3s ease;
@@ -345,7 +346,7 @@ body {
 }
 
 .chat-item h3 {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--white);
     font-weight: 500;
     margin-bottom: 6px;
@@ -877,10 +878,10 @@ body {
     background-color: #25D366;
     color: white;
     border-radius: 50%;
-    min-width: 20px;
-    height: 20px;
+    min-width: 21px;
+    height: 21px;
     padding: 0 4px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: bold;
     display: flex;
     align-items: center;
@@ -1224,8 +1225,4 @@ body {
         font-size: 10px !important;
         margin-top: 3px !important;
     }
-}
-
-.keyboard-open .messages-container {
-    height: calc(100vh - 110px) !important;
 }
