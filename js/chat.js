@@ -10,7 +10,7 @@ let previousListeningChatId = null;
 let userChatsListener = null;
 let messagesListener = null;
 
-let debugMode = true; 
+let debugMode = false; 
 
 let lastRenderedMessages = new Set();
 let renderPending = false;
@@ -47,8 +47,6 @@ function debugLog(message) {
 }
 
 function showNoChatSelected() {
-    console.log("Mostrando estado 'No chat seleccionado'");
-    
     if (!messagesContainer) return;
 
     if (currentChatName) {
