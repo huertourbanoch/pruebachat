@@ -108,10 +108,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function scrollToLatestMessage(smooth = true) {
-        if (!messagesContainer || !messagesContainer.lastElementChild) return;
+        if (!messagesContainer) return;
+        
+        if (!messagesContainer.lastElementChild) {
+            return;
+        }
         
         requestAnimationFrame(() => {
             const lastMessage = messagesContainer.lastElementChild;
+            if (!lastMessage) return;
+            
             const lastMessageRect = lastMessage.getBoundingClientRect();
             
             const containerRect = messagesContainer.getBoundingClientRect();
@@ -277,7 +283,9 @@ document.addEventListener('DOMContentLoaded', function() {
             messageInput.addEventListener('focus', function() {
                 setTimeout(() => {
                     scrollToLatestMessage();
-                    messageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    if (messageInput) {
+                        messageInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                    }
                 }, 500);
             });
         }

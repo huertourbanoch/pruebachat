@@ -1263,36 +1263,3 @@ body {
         margin-top: 3px !important;
     }
 }
-
-.typing-indicator {
-    display: flex;
-    align-items: center;
-    margin: 5px 0;
-    padding: 8px 12px;
-    border-radius: 10px;
-    background-color: var(--medium-bg);
-    width: fit-content;
-    position: relative; /* Añade esto */
-    z-index: 100; /* Añade esto */
-    border: 2px solid red; /* Temporal para depuración */
-}
-  
-  .typing-indicator span {
-    height: 8px;
-    width: 8px;
-    margin: 0 2px;
-    background-color: #bbb;
-    border-radius: 50%;
-    display: inline-block;
-    opacity: 0.4;
-}
-  
-  .typing-indicator span:nth-child(1) { animation: typing 1s infinite 0s; }
-  .typing-indicator span:nth-child(2) { animation: typing 1s infinite 0.33s; }
-  .typing-indicator span:nth-child(3) { animation: typing 1s infinite 0.66s; }
-  
-  @keyframes typing {
-    0% { transform: translateY(0px); opacity: 0.4; }
-    50% { transform: translateY(-5px); opacity: 0.9; }
-    100% { transform: translateY(0px); opacity: 0.4; }
-}
