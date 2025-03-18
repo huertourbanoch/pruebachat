@@ -1020,18 +1020,31 @@ function confirmDeleteChat(chatId, chatName) {
  * @param {boolean} isTyping - true si está escribiendo, false en caso contrario
  */
 function updateTypingStatus(isTyping) {
-    if (!currentChatId || !currentUserId) return;
+    console.log(`Actualizando estado de escritura: ${isTyping}`);
+    if (!currentChatId || !currentUserId) {
+        console.log("No hay chat o usuario actual");
+        return;
+    }
     
     const typingRef = database.ref(`typingStatus/${currentChatId}/${currentUserId}`);
+    console.log(`Ruta typing ref: typingStatus/${currentChatId}/${currentUserId}`);
     
     if (isTyping) {
         typingRef.set({
             isTyping: true,
             userName: currentUserName,
             timestamp: firebase.database.ServerValue.TIMESTAMP
+        }).then(() => {
+            console.log("Estado de escritura actualizado correctamente");
+        }).catch(error => {
+            console.error("Error al actualizar estado:", error);
         });
     } else {
-        typingRef.remove();
+        typingRef.remove().then(() => {
+            console.log("Estado de escritura eliminado correctamente");
+        }).catch(error => {
+            console.error("Error al eliminar estado:", error);
+        });
     }
 }
 
@@ -1040,11 +1053,16 @@ function updateTypingStatus(isTyping) {
  * @param {string} userName - Nombre del usuario que está escribiendo
  */
 function showTypingIndicator(userName) {
+    console.log(`Mostrando indicador para: ${userName}`);
     const typingIndicator = document.getElementById('typing-indicator');
-    if (!typingIndicator) return;
+    if (!typingIndicator) {
+        console.error("No se encontró el elemento typing-indicator");
+        return;
+    }
     
     typingIndicator.setAttribute('title', `${userName} está escribiendo...`);
     typingIndicator.style.display = 'flex';
+    console.log("Indicador de escritura habilitado:", typingIndicator);
     
     // Asegurar que sea visible si hay scroll
     ensureScrollToBottom();
@@ -1054,8 +1072,12 @@ function showTypingIndicator(userName) {
  * Oculta el indicador de escritura
  */
 function hideTypingIndicator() {
+    console.log("Ocultando indicador de escritura");
     const typingIndicator = document.getElementById('typing-indicator');
-    if (!typingIndicator) return;
+    if (!typingIndicator) {
+        console.error("No se encontró el elemento typing-indicator");
+        return;
+    }
     
     typingIndicator.style.display = 'none';
 }
@@ -1065,6 +1087,7 @@ function hideTypingIndicator() {
  * @param {string} chatId - ID del chat
  */
 function setupTypingListeners(chatId) {
+    console.log(`Configurando listeners de escritura para chat: ${chatId}`);
     if (!chatId) return;
     
     // Limpiamos listeners anteriores si existen
@@ -1072,15 +1095,19 @@ function setupTypingListeners(chatId) {
     
     // Escuchar cambios en el estado de escritura
     database.ref(`typingStatus/${chatId}`).on('child_added', snapshot => {
+        console.log("Evento child_added en typing:", snapshot.key, snapshot.val());
         const userId = snapshot.key;
         const typingData = snapshot.val();
         
-        if (userId === currentUserId) return; // Ignoramos nuestro propio estado
+        if (userId === currentUserId) {
+            console.log("Es mi propio estado, ignorando");
+            return; // Ignoramos nuestro propio estado
+        }
         
         usersTyping[userId] = typingData;
+        console.log("Usuarios escribiendo:", Object.keys(usersTyping));
         
         // Mostramos el indicador con el nombre del primer usuario encontrado
-        // Esto se podría mejorar para mostrar varios usuarios si fuera necesario
         if (Object.keys(usersTyping).length > 0) {
             const firstUser = Object.values(usersTyping)[0];
             showTypingIndicator(firstUser.userName);
@@ -1088,11 +1115,16 @@ function setupTypingListeners(chatId) {
     });
     
     database.ref(`typingStatus/${chatId}`).on('child_removed', snapshot => {
+        console.log("Evento child_removed en typing:", snapshot.key);
         const userId = snapshot.key;
         
-        if (userId === currentUserId) return; // Ignoramos nuestro propio estado
+        if (userId === currentUserId) {
+            console.log("Es mi propio estado, ignorando");
+            return; // Ignoramos nuestro propio estado
+        }
         
         delete usersTyping[userId];
+        console.log("Usuarios escribiendo después de removed:", Object.keys(usersTyping));
         
         if (Object.keys(usersTyping).length === 0) {
             hideTypingIndicator();
