@@ -20,6 +20,10 @@ let lastReadMessages = {};
 let unreadCounts = {};
 let chatMessageListeners = {};
 
+let typingTimeout = null;
+let usersTyping = {};
+const TYPING_TIMEOUT = 4000;
+
 const chatList = document.getElementById('chat-list');
 const newChatBtn = document.getElementById('new-chat-btn');
 const newChatModal = document.getElementById('new-chat-modal');
@@ -90,6 +94,11 @@ function cleanupEverything() {
         if (currentListeningChatId) {
             database.ref(`messages/${currentListeningChatId}`).off();
         }
+
+    if (currentChatId && currentUserId) {
+            database.ref(`typingStatus/${currentChatId}/${currentUserId}`).remove();
+        }
+        usersTyping = {};
     }
     
     Object.keys(chatMessageListeners).forEach(chatId => {
@@ -150,6 +159,23 @@ function setupUIListeners() {
     newChatForm.addEventListener('submit', handleNewChatSubmit);
     messageForm.addEventListener('submit', handleMessageSubmit);
     addUserForm.addEventListener('submit', handleAddUserSubmit);
+    
+    // Añadir aquí el listener para detectar cuando el usuario está escribiendo
+    messageInput.addEventListener('input', function() {
+        if (!currentChatId) return;
+        
+        updateTypingStatus(true);
+        
+        // Limpiar timeout anterior si existe
+        if (typingTimeout) {
+            clearTimeout(typingTimeout);
+        }
+        
+        // Configurar nuevo timeout para borrar el estado después de 4 segundos
+        typingTimeout = setTimeout(() => {
+            updateTypingStatus(false);
+        }, TYPING_TIMEOUT);
+    });
 
     window.addEventListener('click', (e) => {
         if (e.target === newChatModal) {
@@ -207,6 +233,12 @@ function handleMessageSubmit(e) {
     e.preventDefault();
     
     debugLog(`INICIO handleMessageSubmit`);
+
+    if (typingTimeout) {
+        clearTimeout(typingTimeout);
+        typingTimeout = null;
+    }
+    updateTypingStatus(false);
     
     if (!currentChatId || !messageInput.value.trim()) {
         debugLog(`No hay chat seleccionado o mensaje vacío`);
@@ -833,6 +865,7 @@ function selectChat(chatId, chatName) {
     
     debugLog(`Llamando a setupMessagesListener desde selectChat`);
     setupMessagesListener(chatId);
+    setupTypingListeners(chatId);
     
     markChatAsRead(chatId);
     
@@ -980,6 +1013,95 @@ function confirmDeleteChat(chatId, chatName) {
     if (confirmed) {
         deleteChat(chatId);
     }
+}
+
+/**
+ * Actualiza el estado de escritura del usuario actual
+ * @param {boolean} isTyping - true si está escribiendo, false en caso contrario
+ */
+function updateTypingStatus(isTyping) {
+    if (!currentChatId || !currentUserId) return;
+    
+    const typingRef = database.ref(`typingStatus/${currentChatId}/${currentUserId}`);
+    
+    if (isTyping) {
+        typingRef.set({
+            isTyping: true,
+            userName: currentUserName,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+    } else {
+        typingRef.remove();
+    }
+}
+
+/**
+ * Muestra el indicador de escritura
+ * @param {string} userName - Nombre del usuario que está escribiendo
+ */
+function showTypingIndicator(userName) {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (!typingIndicator) return;
+    
+    typingIndicator.setAttribute('title', `${userName} está escribiendo...`);
+    typingIndicator.style.display = 'flex';
+    
+    // Asegurar que sea visible si hay scroll
+    ensureScrollToBottom();
+}
+
+/**
+ * Oculta el indicador de escritura
+ */
+function hideTypingIndicator() {
+    const typingIndicator = document.getElementById('typing-indicator');
+    if (!typingIndicator) return;
+    
+    typingIndicator.style.display = 'none';
+}
+
+/**
+ * Configura los listeners para detectar cuando otros usuarios están escribiendo
+ * @param {string} chatId - ID del chat
+ */
+function setupTypingListeners(chatId) {
+    if (!chatId) return;
+    
+    // Limpiamos listeners anteriores si existen
+    database.ref(`typingStatus/${chatId}`).off();
+    
+    // Escuchar cambios en el estado de escritura
+    database.ref(`typingStatus/${chatId}`).on('child_added', snapshot => {
+        const userId = snapshot.key;
+        const typingData = snapshot.val();
+        
+        if (userId === currentUserId) return; // Ignoramos nuestro propio estado
+        
+        usersTyping[userId] = typingData;
+        
+        // Mostramos el indicador con el nombre del primer usuario encontrado
+        // Esto se podría mejorar para mostrar varios usuarios si fuera necesario
+        if (Object.keys(usersTyping).length > 0) {
+            const firstUser = Object.values(usersTyping)[0];
+            showTypingIndicator(firstUser.userName);
+        }
+    });
+    
+    database.ref(`typingStatus/${chatId}`).on('child_removed', snapshot => {
+        const userId = snapshot.key;
+        
+        if (userId === currentUserId) return; // Ignoramos nuestro propio estado
+        
+        delete usersTyping[userId];
+        
+        if (Object.keys(usersTyping).length === 0) {
+            hideTypingIndicator();
+        } else {
+            // Si todavía hay alguien escribiendo, mostrar su nombre
+            const firstUser = Object.values(usersTyping)[0];
+            showTypingIndicator(firstUser.userName);
+        }
+    });
 }
 
 async function deleteChat(chatId) {
