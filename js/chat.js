@@ -151,8 +151,41 @@ function cleanupEverything() {
 }
 
 function toggleModal(modal, show) {
-    if (modal) {
-        modal.style.display = show ? 'block' : 'none';
+    if (!modal) return;
+    
+    if (show) {
+        modal.style.display = 'flex'; // Usamos flex en lugar de block
+        
+        // Añadimos clase para la animación de entrada
+        modal.classList.add('modal-active');
+        
+        // Bloqueamos el scroll del body
+        document.body.style.overflow = 'hidden';
+        
+        // Aseguramos que el contenido del modal esté centrado verticalmente
+        setTimeout(() => {
+            const modalContent = modal.querySelector('.modal-content');
+            if (modalContent) {
+                // Si el contenido es más alto que la ventana, ajustamos
+                if (modalContent.offsetHeight > window.innerHeight * 0.9) {
+                    modalContent.style.alignSelf = 'flex-start';
+                    modalContent.style.marginTop = '5vh';
+                    modalContent.style.marginBottom = '5vh';
+                } else {
+                    modalContent.style.alignSelf = 'center';
+                    modalContent.style.margin = '0';
+                }
+            }
+        }, 10);
+    } else {
+        // Animación de salida
+        modal.classList.remove('modal-active');
+        
+        // Pequeño retraso para permitir que termine la animación
+        setTimeout(() => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 300);
     }
 }
 
@@ -874,6 +907,9 @@ async function showChatInfo(chatId, chatData) {
     document.getElementById('info-chat-date').textContent = creationDate;
     
     try {
+        // Añadimos un indicador de carga mientras obtenemos los datos
+        document.getElementById('info-chat-creator').innerHTML = '<span class="loading-indicator">Cargando...</span>';
+        
         const creatorSnapshot = await database.ref(`users/${chatData.createdBy}`).once('value');
         const creatorData = creatorSnapshot.val() || {};
         document.getElementById('info-chat-creator').textContent = creatorData.name || 'Usuario desconocido';
@@ -882,10 +918,15 @@ async function showChatInfo(chatId, chatData) {
         document.getElementById('info-chat-creator').textContent = 'No disponible';
     }
     
+    // Mostramos indicadores de carga mientras cargamos los datos
+    document.getElementById('participants-list').innerHTML = '<li class="loading-item">Cargando participantes...</li>';
+    document.getElementById('add-user-selection').innerHTML = '<p class="loading-text">Cargando usuarios disponibles...</p>';
+    
+    toggleModal(chatInfoModal, true);
+    
+    // Cargamos los datos después de mostrar el modal para una mejor experiencia
     loadChatParticipants(chatId);
     loadAvailableUsersForChat(chatId);
-
-    toggleModal(chatInfoModal, true);
 }
 
 async function loadChatParticipants(chatId) {
@@ -931,41 +972,61 @@ async function loadChatParticipants(chatId) {
 
 async function loadAvailableUsersForChat(chatId) {
     const userSelectionDiv = document.getElementById('add-user-selection');
-    userSelectionDiv.innerHTML = '<p>Cargando usuarios disponibles...</p>';
+    userSelectionDiv.innerHTML = '<p class="loading-text">Cargando usuarios disponibles...</p>';
     
     try {
-        const usersSnapshot = await database.ref('users').once('value');
-        const users = usersSnapshot.val() || {};
+        // Usamos Promise.all con await para cargar los datos en paralelo
+        const [usersSnapshot, participantsSnapshot] = await Promise.all([
+            database.ref('users').once('value'),
+            database.ref(`chatParticipants/${chatId}`).once('value')
+        ]);
         
-        const participantsSnapshot = await database.ref(`chatParticipants/${chatId}`).once('value');
+        const users = usersSnapshot.val() || {};
         const participants = participantsSnapshot.val() || {};
         
         const availableUsers = Object.keys(users).filter(userId => !participants[userId]);
 
         if (availableUsers.length === 0) {
-            userSelectionDiv.innerHTML = '<p>No hay más usuarios disponibles para añadir</p>';
+            userSelectionDiv.innerHTML = '<p class="no-users-message">No hay más usuarios disponibles para añadir</p>';
             addUserForm.querySelector('button').disabled = true;
             return;
         }
         
-        userSelectionDiv.innerHTML = '<p>Selecciona usuarios para añadir:</p>';
+        userSelectionDiv.innerHTML = '<p class="selection-header">Selecciona usuarios para añadir:</p>';
         addUserForm.querySelector('button').disabled = false;
+        
+        // Crear un fragmento para mejorar rendimiento al agregar muchos elementos
+        const fragment = document.createDocumentFragment();
         
         availableUsers.forEach(userId => {
             const user = users[userId];
             const userCheckbox = document.createElement('div');
             userCheckbox.className = 'user-checkbox';
+            
+            // Mejoramos el formato para mostrar mejor los usuarios
             userCheckbox.innerHTML = `
                 <label>
                     <input type="checkbox" value="${userId}">
-                    ${user.name} (${user.email || 'Sin email'})
+                    <div class="user-info-container">
+                        <div class="user-name">${user.name}</div>
+                        <div class="user-email">${user.email || 'Sin email'}</div>
+                    </div>
                 </label>
             `;
-            userSelectionDiv.appendChild(userCheckbox);
+            fragment.appendChild(userCheckbox);
+        });
+        
+        userSelectionDiv.appendChild(fragment);
+        
+        // Agregamos animación para que aparezcan de forma escalonada
+        const checkboxes = userSelectionDiv.querySelectorAll('.user-checkbox');
+        checkboxes.forEach((checkbox, index) => {
+            checkbox.style.animationDelay = `${index * 0.05}s`;
+            checkbox.classList.add('fade-in');
         });
     } catch (error) {
         console.error('Error al cargar usuarios disponibles:', error);
-        userSelectionDiv.innerHTML = '<p>Error al cargar usuarios disponibles</p>';
+        userSelectionDiv.innerHTML = '<p class="error-message">Error al cargar usuarios disponibles</p>';
     }
 }
 

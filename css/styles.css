@@ -567,6 +567,8 @@ body {
 
 .modal {
     display: none;
+    justify-content: center;
+    align-items: center;
     position: fixed;
     z-index: 1000;
     left: 0;
@@ -576,6 +578,10 @@ body {
     background-color: rgba(0, 0, 0, 0.7);
     animation: fadeIn 0.3s ease;
     backdrop-filter: blur(3px);
+}
+
+.modal[style*="display: block"] {
+    display: flex !important;
 }
 
 .modal-content {
@@ -589,6 +595,9 @@ body {
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
     border-top: 4px solid var(--primary-color);
     position: relative;
+    margin: 0;
+    max-height: 90vh;
+    overflow-y: auto;
 }
 
 .modal-content h2 {
@@ -658,6 +667,14 @@ body {
     z-index: 999;
 }
 
+#add-user-form .btn-primary {
+    margin-top: 20px;
+    padding: 12px 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
 .sidebar-overlay.active {
     display: block;
 }
@@ -711,24 +728,52 @@ body {
 }
 
 #user-selection, #add-user-selection {
-    max-height: 200px;
+    max-height: 250px;
     overflow-y: auto;
     margin: 15px 0;
-    padding: 10px;
+    padding: 15px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background-color: var(--dark-bg);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) var(--dark-bg);
+}
+
+
+#add-user-selection::-webkit-scrollbar {
+    width: 8px;
+}
+
+#add-user-selection::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+#add-user-selection::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+#add-user-selection::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 .user-checkbox {
-    margin-bottom: 10px;
-    padding: 8px 10px;
-    border-radius: 6px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
     transition: background-color 0.2s ease;
+    background-color: rgba(50, 50, 50, 0.5);
+    border: 1px solid transparent;
 }
 
 .user-checkbox:hover {
     background-color: var(--light-bg);
+    border-color: var(--primary-color);
+}
+
+.user-checkbox:last-child {
+    margin-bottom: 0;
 }
 
 .user-checkbox label {
@@ -737,13 +782,15 @@ body {
     cursor: pointer;
     font-weight: normal;
     margin-bottom: 0;
+    width: 100%;
 }
 
 .user-checkbox input[type="checkbox"] {
-    margin-right: 10px;
+    margin-right: 12px;
     width: 18px;
     height: 18px;
     accent-color: var(--primary-color);
+    cursor: pointer;
 }
 
 .chat-actions {
@@ -1170,6 +1217,16 @@ body {
 @media (max-width: 768px) {
     body.keyboard-open .messages-container {
         height: calc(100vh - 200px) !important;
+    }
+
+    .modal-content {
+        width: 95%;
+        padding: 20px;
+        max-height: 85vh;
+    }
+    
+    #add-user-selection {
+        max-height: 200px;
     }
 
     .message-form {
